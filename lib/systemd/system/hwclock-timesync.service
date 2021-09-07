@@ -1,0 +1,9 @@
+[Unit]
+Description=HW Clock Time sync
+After=ntpd.service
+
+[Service]
+ExecStart=/usr/necro/sbin/hwclock-timesync.sh
+
+[Install]
+WantedBy=multi-user.target

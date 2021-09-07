@@ -1,0 +1,15 @@
+[Unit]
+Description=THTTPD Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/sbin/thttpd -C /etc/thttpd.conf -D
+ExecStop=/bin/kill $(/bin/pidof thttpd)
+Restart=always
+RestartSec=5
+StartLimitInterval=5
+
+[Install]
+WantedBy=multi-user.target

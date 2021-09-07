@@ -1,0 +1,9 @@
+[Unit]
+Description="NIIC device search"
+After=network.target systemd-networkd.service
+
+[Service]
+ExecStart=/usr/necro/ssdp-daemon
+
+[Install]
+WantedBy=multi-user.target

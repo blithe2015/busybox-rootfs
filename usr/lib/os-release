@@ -1,0 +1,10 @@
+NAME="NECRO"
+VERSION="1.01 LTS (QIU NIU)(build 211505)"
+ID=NECRO
+ID_LIKE=NECROFS
+PRETTY_NAME="NECRO 1.01.0 LTS (build 211505)"
+VERSION_ID="1.01"
+HOME_URL="http://www.necro.com/"
+SUPPORT_URL="http://www.necro.com/support/"
+BUG_REPORT_URL="http://www.necro.com/bugs/"
+VERSION_CODENAME=NIU

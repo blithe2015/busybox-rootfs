@@ -1,0 +1,10 @@
+[Unit]
+Description=HW Clock Time Sync Timer
+
+[Timer]
+OnBootSec=1m
+OnUnitActiveSec=3m
+Unit=hwclock-timesync.service
+
+[Install]
+WantedBy=multi-user.target

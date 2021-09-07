@@ -1,0 +1,12 @@
+[Unit]
+Description=dnsmasq - A lightweight DHCP and caching DNS server
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/dnsmasq --test
+ExecStart=/usr/bin/dnsmasq -k
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

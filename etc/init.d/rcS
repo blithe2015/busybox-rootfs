@@ -1,0 +1,21 @@
+#!/bin/sh
+echo -e "\tWelcome to  \033[31mNecro\033[0m System"
+
+mkdir -p /dev/pts
+mkdir -p /dev/i2c
+/bin/mount -a
+
+#echo "++ Setting wathcdog"
+#watchdog -t 30 /dev/watchdog0
+
+echo "++ Setting up mdev"
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+/sbin/mdev -s
+
+/bin/hostname NECRO
+
+/etc/rc.d/init.d/netd start
+echo "                        " > /dev/ttySTM0
+echo "Starting networking..." > /dev/ttySTM0
+/sbin/ifconfig lo 127.0.0.1
+#/etc/init.d/ifconfig-eth0
