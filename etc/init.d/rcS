@@ -1,21 +1,41 @@
 #!/bin/sh
-echo -e "\tWelcome to  \033[31mNecro\033[0m System"
 
+if [ -f /etc/os-release ] || [ -f /usr/lib/os-release ];then
+	. /etc/os-release
+	echo -e "Welcome to $PRETTY_NAME!"	
+fi
+
+# mount fstab
 mkdir -p /dev/pts
 mkdir -p /dev/i2c
+
 /bin/mount -a
 
-#echo "++ Setting wathcdog"
+#echo "Setting wathcdog"
 #watchdog -t 30 /dev/watchdog0
 
-echo "++ Setting up mdev"
+echo "         Setting up mdev ..."
 echo /sbin/mdev > /proc/sys/kernel/hotplug
 /sbin/mdev -s
+mount -t devpts devpts /dev/pts
 
-/bin/hostname NECRO
+echo -e "         Set up HOSTNAME ..."
+if [ -f /etc/hostname ]; then
+    /bin/hostname -F /etc/hostname
+else
+    HOSTNAME=localhost
+    /bin/hostname $HOSTNAME
+fi
 
-/etc/rc.d/init.d/netd start
-echo "                        " > /dev/ttySTM0
-echo "Starting networking..." > /dev/ttySTM0
-/sbin/ifconfig lo 127.0.0.1
+echo "         Loading Net Drivers ..."
+modprobe stmmac
+modprobe stmmac_platform
+modprobe dwmac_stm32
+modprobe r8152
+
+echo "         Starting networking ..."
+#/sbin/ifconfig lo 127.0.0.1
+/etc/init.d/networking start
+#/etc/rc.d/init.d/netd start
+#/sbin/udhcpc -i eth0
 #/etc/init.d/ifconfig-eth0
