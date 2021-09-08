@@ -2,7 +2,7 @@
 ::sysinit:/etc/init.d/rcS
 # /bin/sh invocations on selected ttys
 # start an "askfirst" shell on the console (whatever that may be)
-::respawn:-/sbin/getty 115200 ttySTM0 -n -l /bin/autologin
+::respawn:-/sbin/getty -L ttySTM0 0 vt100 -n -l /bin/autologin
 # stuff to do when restarting the init process
 ::restart:/sbin/init
 # stuff to do before rebooting
