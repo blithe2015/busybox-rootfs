@@ -1,0 +1,22 @@
+#! /bin/sh
+
+NECRO_TEST_IN="/tmp/necro-test-in-$$"
+NECRO_TEST_OUT="/tmp/necro-test-out-$$"
+
+check_alive()
+{
+    echo check_alive ${1+"$@"} > "$NECRO_TEST_OUT"
+}
+
+start_load()
+{
+    echo start_load > "$NECRO_TEST_OUT"
+}
+
+wait_load()
+{
+    read rc < "$NECRO_TEST_IN"
+}
+
+script="$1"; shift
+. $script

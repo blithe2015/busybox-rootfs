@@ -1,0 +1,283 @@
+#! /bin/sh
+
+staging=${DESTDIR}
+prefix="/usr/necro"
+exec_prefix="/usr/necro"
+libdir="/usr/necro/lib"
+datarootdir="/usr/necro/share"
+datadir="/usr/necro/share"
+pkgdatadir="${datadir}/necro"
+includedir="/usr/necro/include"
+
+NECRO_VERSION="3.1"
+NECRO_PREFIX="${staging}${prefix}"
+NECRO_CC="arm-niic-linux-gnueabi-gcc  -march=armv7ve -mthumb -mfpu=neon-vfpv4 -mfloat-abi=hard -mcpu=cortex-a7 --sysroot=/home/blithe/development/NOM-R000/SDK/sysroots/cortexa7t2hf-neon-vfpv4-niic-linux-gnueabi"
+NECRO_TARGET_ARCH="arm"
+NECRO_INCLUDE_DIR="${staging}${includedir}"
+NECRO_BASE_CFLAGS="-I$NECRO_INCLUDE_DIR/qiuniu -I$NECRO_INCLUDE_DIR  -O2 -pipe -g -feliminate-unused-debug-types  -D_GNU_SOURCE -D_REENTRANT -fasynchronous-unwind-tables -D__QIUNIU__"
+NECRO_QIUNIU_LDFLAGS="-L${staging}${libdir} -lqiuniu"
+NECRO_POSIX_LDFLAGS="-lpthread -lrt -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed  "
+NECRO_LIBRARY_DIR="${staging}${libdir}"
+LD_FILE_OPTION="yes"
+
+unset skin_list compat codegen
+
+dump_wrappers()
+{
+   file=$1
+   if test \! -r ${NECRO_LIBRARY_DIR}/$file; then
+      echo "Necro: wrappers cannot be read from ${NECRO_LIBRARY_DIR}/${file}" >&2
+      exit 1
+   fi
+   if test "$LD_FILE_OPTION" = "yes"; then
+      echo -n "-Wl,@${NECRO_LIBRARY_DIR}/${file}"
+   else
+      wrappers=`while read wrap_option symbol; do	\
+	      echo -n "-Wl,$wrap_option=$symbol " ; \
+      done < ${NECRO_LIBRARY_DIR}/${file}`
+      echo -n "$wrappers"
+   fi
+}
+
+usage ()
+{
+cat <<EOF
+Usage necro-config OPTIONS
+Options :
+        --help
+        --v,--verbose
+        --version
+        --cc
+        --ccld
+        --arch
+        --prefix
+        --[skin=]posix|rtdm|qiuniu
+        --auto-init|auto-init-solib|no-auto-init
+        --mode-check|no-mode-check
+        --cflags
+        --ldflags
+        --lib*-dir|libdir|user-libdir
+        --core
+        --info
+        --compat
+EOF
+    exit $1
+}
+
+dump_info ()
+{
+    version=${NECRO_VERSION}
+    if test -x $NECRO_PREFIX/sbin/version; then
+	_version=`$NECRO_PREFIX/sbin/version 2>/dev/null`
+	test x"$_version" = x || version="$_version"
+    fi
+    echo "Necro version: ${version}"
+    if test -r /proc/ipipe/version; then
+	uname -a 2>/dev/null || echo "Cannot determine system information (uname?)"
+	echo "Kernel parameters: `cat /proc/cmdline`"
+	echo "I-pipe release #`cat /proc/ipipe/version` detected"
+	if test -r /proc/necro/version; then
+	    echo "Qiuniu core `cat /proc/necro/version` detected"
+	else
+	    echo "Qiuniu core disabled on this system"
+	fi
+    else
+	    echo "Qiuniu core is NOT present on this system"
+    fi
+    echo "Compiler: gcc version 8.2.0 (GCC) "
+    eval echo "Build args:  '--target=arm-niic-linux-gnueabi' '--host=arm-niic-linux-gnueabi' '--build=x86_64-linux' '--with-libtool-sysroot=/home/blithe/development/NOM-R000/SDK/sysroots/cortexa7t2hf-neon-vfpv4-niic-linux-gnueabi' '--prefix=/usr/necro' '--exec-prefix=/usr/necro' '--libdir=/usr/necro/lib' '--datarootdir=/usr/necro/share' '--datadir=/usr/necro/share' '--includedir=/usr/necro/include' '--sysconfdir=/etc' '--with-alchemy=no' '--enable-smp' '--with-core=qiuniu' '--enable-pshared' '--with-pic=yes' 'build_alias=x86_64-linux' 'host_alias=arm-niic-linux-gnueabi' 'target_alias=arm-niic-linux-gnueabi' 'CC=arm-niic-linux-gnueabi-gcc  -march=armv7ve -mthumb -mfpu=neon-vfpv4 -mfloat-abi=hard -mcpu=cortex-a7 --sysroot=/home/blithe/development/NOM-R000/SDK/sysroots/cortexa7t2hf-neon-vfpv4-niic-linux-gnueabi' 'CFLAGS= -O2 -pipe -g -feliminate-unused-debug-types ' 'LDFLAGS=-Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed' 'CPPFLAGS=' 'CPP=arm-niic-linux-gnueabi-gcc -E  -march=armv7ve -mthumb -mfpu=neon-vfpv4 -mfloat-abi=hard -mcpu=cortex-a7 --sysroot=/home/blithe/development/NOM-R000/SDK/sysroots/cortexa7t2hf-neon-vfpv4-niic-linux-gnueabi' 'PKG_CONFIG_PATH=/home/blithe/development/NOM-R000/SDK/sysroots/cortexa7t2hf-neon-vfpv4-niic-linux-gnueabi/usr/lib/pkgconfig:/home/blithe/development/NOM-R000/SDK/sysroots/cortexa7t2hf-neon-vfpv4-niic-linux-gnueabi/usr/share/pkgconfig'"
+    exit 0
+}
+
+verbose ()
+{
+    echo necro-config --verbose
+    echo "        --core=qiuniu"
+    echo "        --version=\"${NECRO_VERSION}\""
+    echo "        --cc=\"$NECRO_CC\""
+    echo "        --ccld=\"$NECRO_PREFIX/bin/wrap-link.sh $NECRO_CC\""
+    echo "        --arch=\"$NECRO_TARGET_ARCH\""
+    echo "        --prefix=\"$NECRO_PREFIX\""
+    echo "        --library-dir=\"$NECRO_LIBRARY_DIR\""
+}
+
+if test $# -eq 0; then
+    verbose $*
+    usage 1 1>&2
+fi
+
+do_ldflags=
+do_cflags=
+do_setinit=
+do_autoinit=y
+do_autoinit_solib=
+do_mode_check=y
+
+while test $# -gt 0; do
+    case "$1" in
+        --v|--verbose)
+            verbose $*
+            exit 0
+            ;;
+        --version)
+            echo ${NECRO_VERSION}
+            ;;
+        --cc)
+            echo $NECRO_CC
+            ;;
+        --ccld)
+            echo $NECRO_PREFIX/bin/wrap-link.sh $NECRO_CC
+            ;;
+        --arch)
+            echo $NECRO_TARGET_ARCH
+            ;;
+        --prefix)
+            echo $NECRO_PREFIX
+            ;;
+	--no-auto-init)
+	    do_setinit=y
+	    do_autoinit=
+	    do_autoinit_solib=
+	    ;;
+	--auto-init)
+	    do_setinit=y
+	    do_autoinit=y
+	    do_autoinit_solib=
+	    ;;
+	--auto-init-solib)
+	    if test \! -r ${NECRO_LIBRARY_DIR}/necro/bootstrap-pic.o; then
+		echo "--auto-init-solib requires shared library support" 1>&2
+		exit 1
+	    fi
+	    do_setinit=y
+	    do_autoinit=y
+	    do_autoinit_solib=y
+	    ;;
+        --lib*-dir|--libdir|--user-libdir)
+            echo $NECRO_LIBRARY_DIR
+            ;;
+	--skin)
+	    skin_list="$skin_list $2"
+	    shift
+	    ;;
+	--skin=*)
+	    skin_list="$skin_list `expr "$1" : '--skin=\(.*\)'`"
+	    ;;
+	--posix|--qiuniu|--rtdm)
+	    skin_list="$skin_list `expr "$1" : '--\(.*\)'`"
+	    ;;
+	--cflags)
+	    do_cflags=y
+	    ;;
+	--ldflags)
+	    do_ldflags=y
+	    ;;
+	--core)
+	    echo qiuniu
+	    ;;
+        --help)
+            usage 0 1>&2
+            ;;
+        --info)
+            dump_info
+            ;;
+	--compat)
+	    compat=y
+            ;;
+	--mode-check)
+	    do_mode_check=y
+	    ;;
+	--no-mode-check)
+	    do_mode_check=
+	    ;;
+        *)
+         usage 1 1>&2
+         ;;
+    esac
+    shift
+done
+
+if test x$do_setinit = xy -a x$do_ldflags = x; then
+	echo "--[no-]auto-init is meaningful only with --ldflags" 1>&2
+	exit 1
+fi
+
+if test x$do_cflags = xy; then
+    if test -z "$skin_list"; then
+	echo "no API specified, missing --skin before --cflags" 1>&2
+	exit 1
+    fi
+    cflags="$NECRO_BASE_CFLAGS"
+    test x$compat = xy && cflags="-I$NECRO_INCLUDE_DIR/trank -D__NECRO_COMPAT__ $cflags"
+    for skin in $skin_list; do
+	case "$skin" in
+	    posix|rtdm)
+		test x$compat = xy && cflags="-I$NECRO_INCLUDE_DIR/trank/posix $cflags"
+		cflags="$cflags -D__QIUNIU_WRAP__"
+		;;
+	    qiuniu)
+		;;
+	    vxworks|psos|alchemy|smokey)
+		cflags="$cflags -I$NECRO_INCLUDE_DIR/$skin"
+		;;
+	    *)
+		echo "$skin is not a user-space API" 1>&2
+		exit 1
+		;;
+	esac
+    done
+    echo $cflags
+fi
+
+if test x$do_ldflags = xy; then
+    if test -z "$skin_list"; then
+	echo "no API specified, missing --skin before --ldflags" 1>&2
+	exit 1
+    fi
+    lmodeck=
+    ldflags=
+    if test x$do_mode_check = xy; then
+	ldflags="`dump_wrappers modechk.wrappers`"
+	lmodeck=-lmodechk
+    fi
+    test x$compat = xy && ldflags="-ltrank $ldflags"
+    copperplate=
+    for skin in $skin_list; do
+	case "$skin" in
+	    posix|rtdm)
+		ldflags="`dump_wrappers qiuniu.wrappers` $ldflags"
+		;;
+	    qiuniu)
+		# do NOT wrap POSIX symbols in application code with
+		# --qiuniu. On the contrary, --posix does. This switch
+		# does not affect mode checking wrappers,
+		# --[no-]mode-check does.
+		;;
+	    vxworks|psos|alchemy|smokey)
+		copperplate="-lcopperplate"
+		ldflags="$ldflags -l$skin"
+		if [ -r ${NECRO_LIBRARY_DIR}/${skin}.wrappers ]; then
+		    ldflags=" `dump_wrappers ${skin}.wrappers` $ldflags"
+		fi
+		;;
+	    *)
+		echo "unknown API: $skin" 1>&2
+		exit 1
+		;;
+	esac
+    done
+    wrap_main=
+    if test x$do_autoinit = xy; then
+	if test x$do_autoinit_solib = xy; then
+	    codegen=-pic
+	else
+	    wrap_main="-Wl,--wrap=main -Wl,--dynamic-list=${NECRO_LIBRARY_DIR}/dynlist.ld"
+	fi
+	bootstrap="${NECRO_LIBRARY_DIR}/necro/bootstrap${codegen}.o"
+    fi
+    ldflags="-Wl,--no-as-needed $ldflags"
+    echo "$ldflags $copperplate $bootstrap $wrap_main $NECRO_QIUNIU_LDFLAGS" \
+		"$lmodeck $NECRO_POSIX_LDFLAGS"
+fi
+
+exit 0
